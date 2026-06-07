@@ -1,0 +1,62 @@
+# ===== Rust / Cargo =====
+target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# ===== Node / pnpm =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+.pnpm-store/
+.pnp.*
+
+# ===== Tauri =====
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+src-tauri/.cargo/
+
+# ===== IDE / 编辑器 =====
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===== OS 杂项 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# ===== 本地配置 / 隐私 =====
+.env
+.env.local
+.env.*.local
+local.settings.json
+*.local.toml
+
+# ===== 应用运行时数据 =====
+# 开发期间的本地 SQLite / 缓存 / 备份目录
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+backups/
+.cache/
+.tmp/
+
+# ===== 构建产物 =====
+*.exe
+*.msi
+*.app
+*.dmg
+*.deb
+*.AppImage
+release/
