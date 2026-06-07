@@ -46,6 +46,15 @@ pub fn run() {
                 }
             });
 
+            // Ctrl+C / 终端关闭 → 主动 exit(0)，避免 STATUS_CONTROL_C_EXIT (0xC000013A)
+            let ctrl_c_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if tokio::signal::ctrl_c().await.is_ok() {
+                    tracing::info!("Ctrl+C received, shutting down cleanly");
+                    ctrl_c_handle.exit(0);
+                }
+            });
+
             // 托盘
             if let Err(e) = setup_tray(app.handle()) {
                 tracing::error!(error = %e, "setup_tray failed");

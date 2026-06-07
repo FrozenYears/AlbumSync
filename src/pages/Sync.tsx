@@ -83,12 +83,23 @@ export default function SyncPage({ device }: Props) {
     }
   }
 
+  const [aborting, setAborting] = useState(false);
   async function abort() {
+    setAborting(true);
     try {
       await api.syncAbort();
     } catch {
       /* ignore */
     }
+    // 即使后端 Aborted 事件没到，也在 800ms 后兜底重置 UI
+    setTimeout(() => {
+      setAborting(false);
+      setProgress((p) =>
+        p.active
+          ? { ...p, active: false, result: { added: 0, updated: 0, deleted: 0, failed: 0, aborted: true } }
+          : p,
+      );
+    }, 800);
   }
 
   const pct =
@@ -104,9 +115,10 @@ export default function SyncPage({ device }: Props) {
           {progress.active ? (
             <button
               onClick={abort}
-              className="rounded bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200"
+              disabled={aborting}
+              className="rounded bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
             >
-              中止当前同步
+              {aborting ? "正在中止…" : "中止当前同步"}
             </button>
           ) : (
             <button
@@ -296,7 +308,7 @@ function reduce(p: ProgressState, e: SyncEvent): ProgressState {
       return {
         ...p,
         active: false,
-        result: { added: 0, updated: 0, deleted: 0, failed: 0, aborted: true },
+        result: p.result ?? { added: 0, updated: 0, deleted: 0, failed: 0, aborted: true },
       };
   }
 }

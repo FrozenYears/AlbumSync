@@ -210,7 +210,7 @@ async fn run_inner(
             };
             if cancel.is_cancelled() { return; }
             let res = download_one_file(
-                &host, port, &user, &pass, &backup_root, &entry, &tx,
+                &host, port, &user, &pass, &backup_root, &entry, &tx, &cancel,
             )
             .await;
             let msg = match res {
@@ -220,6 +220,7 @@ async fn run_inner(
                     mtime: entry.mtime,
                     is_update,
                 },
+                Err(crate::error::AlbumError::Cancelled) => return,
                 Err(e) => DownloadMsg::Failed {
                     rel_path: entry.rel_path.clone(),
                     reason: e.to_string(),
@@ -315,26 +316,46 @@ async fn download_one_file(
     backup_root: &Path,
     entry: &FileEntry,
     tx: &tokio::sync::mpsc::Sender<DownloadMsg>,
+    cancel: &CancellationToken,
 ) -> Result<u64> {
-    let mut ftp = connect_login(host, port, user, pass, Duration::from_secs(15)).await?;
+    if cancel.is_cancelled() { return Err(AlbumError::Cancelled); }
+
+    // 连接也用 race：取消优先
+    let connect_fut = connect_login(host, port, user, pass, Duration::from_secs(15));
+    tokio::pin!(connect_fut);
+    let mut ftp = tokio::select! {
+        biased;
+        _ = cancel.cancelled() => return Err(AlbumError::Cancelled),
+        r = &mut connect_fut => r?,
+    };
+
     let remote_path = format!("{REMOTE_BASE}{}{}", trailing_slash(REMOTE_BASE), entry.rel_path);
     let local_path = backup_root.join(&entry.rel_path);
 
-    let rel = entry.rel_path.clone();
-    let tx2 = tx.clone();
-    let outcome = downloader::download_one(
-        &mut ftp,
-        &remote_path,
-        &local_path,
-        entry.size,
-        |n| {
-            let _ = tx2.try_send(DownloadMsg::Progress {
-                current_file: rel.clone(),
-                bytes: n,
-            });
-        },
-    )
-    .await?;
+    let outcome = {
+        let rel = entry.rel_path.clone();
+        let tx2 = tx.clone();
+        let cancel2 = cancel.clone();
+        let download_fut = downloader::download_one(
+            &mut ftp,
+            &remote_path,
+            &local_path,
+            entry.size,
+            move |n| {
+                if cancel2.is_cancelled() { return; }
+                let _ = tx2.try_send(DownloadMsg::Progress {
+                    current_file: rel.clone(),
+                    bytes: n,
+                });
+            },
+        );
+        tokio::pin!(download_fut);
+        tokio::select! {
+            biased;
+            _ = cancel.cancelled() => return Err(AlbumError::Cancelled),
+            r = &mut download_fut => r?,
+        }
+    };
     let _ = ftp.quit().await;
     Ok(outcome.bytes_downloaded)
 }
