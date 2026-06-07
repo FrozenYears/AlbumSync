@@ -422,22 +422,69 @@ pub enum SyncEvent {
 - **集成**：起一个本地 vsftpd / pyftpdlib 做远端，跑同步引擎；验证：首次全量 → 增量为空 → 修改一文件 → 重下 → 删一文件 → 入 trash。
 - **手工 e2e**：用真手机 + Primitive FTPd 走 5.1 流程。
 
-## 12. 技术栈锁定（来自调研）
+## 12. 技术栈锁定（依赖原则：能不加就不加）
 
-| 维度 | 选择 |
+### 12.1 指导原则
+
+> "在保证项目能用好用的情况下，尽量减少依赖"
+
+- **优先 std + Tauri 自带能力**；只有当 std 写起来超过 50 行或容易出错时才引入 crate / npm 包。
+- 每个依赖必须满足三选一：
+  1. 协议/格式实现（FTP、SQLite、SHA、UUID 之类）—— 自己写代价过高
+  2. 跨平台抽象（keyring、文件路径、Tauri）—— 自己写不安全
+  3. 编译期保障（thiserror 派生、serde 派生）—— 显著降低代码量
+- 拒绝"为方便顺手加"的库：状态管理库、HTTP 客户端、日期格式化、UI 组件库（除已选 Tailwind）、动画库、图标全家桶。
+
+### 12.2 后端 Rust 依赖（src-tauri/Cargo.toml）
+
+| 依赖 | 用途 | 不可替代理由 |
+|---|---|---|
+| `tauri` | 桌面框架 | – |
+| `tauri-plugin-single-instance` | 防多开 + 拉起既有窗口 | 自实现 Win32 互斥 + IPC 复杂且易错 |
+| `tokio` (`rt-multi-thread`, `fs`, `sync`, `time`, `net`, `io-util`, `macros`) | 异步运行时 | sqlx/suppaftp 强依赖 |
+| `suppaftp` (`tokio` feature) | FTP 客户端 | 重写 FTP 协议代价过高 |
+| `sqlx` (`runtime-tokio`, `sqlite`, `macros`, `migrate`) | SQLite + 迁移 | 跨连接事务、迁移、连接池 |
+| `keyring` | Windows Credential Manager | DPAPI 跨平台抽象 |
+| `serde` + `serde_json` (派生) | 序列化（Tauri 必须） | – |
+| `thiserror` | 错误类型派生 | 显著降低 50+ 行 boilerplate |
+| `tracing` + `tracing-subscriber` (`fmt`, `env-filter`) | 日志 | std 没有结构化日志 |
+| `tokio-util` (`io`) | CancellationToken + 异步 IO 适配 | 取消语义自实现易错 |
+
+**明确剔除**：
+- ❌ `anyhow` —— 只用 `thiserror::Error` 自定义类型，命令层直接 `Result<T, AlbumError>`
+- ❌ `tracing-appender` —— 日志按天滚动用 30 行自实现，启动时清理 7 天前日志
+- ❌ `uuid` —— SQLite 自增主键已够；run_id 用 i64
+- ❌ `chrono` / `time` —— 全程 unix 时间戳（i64），UI 端 `Intl.DateTimeFormat` 渲染
+- ❌ `regex` —— 用 `glob` 库做 include/exclude 通配，比 regex 体积更小且语义更准
+- 待定：`glob` 是否引入或自己写 5 行通配匹配——脚手架阶段实测后定
+
+### 12.3 前端 npm 依赖（package.json）
+
+| 依赖 | 用途 |
 |---|---|
-| 桌面框架 | Tauri 2（>= 2.9.x，以脚手架时 `cargo add` 实际版本为准） |
-| 前端 | React 18 + TypeScript 5.x + Vite 5/6 + Tailwind CSS v4 (`@tailwindcss/vite`) |
-| 包管理 | pnpm |
-| Rust 运行时 | tokio（multi-thread runtime） |
-| FTP | `suppaftp`（`tokio` feature） |
-| DB | `sqlx`（`runtime-tokio`, `sqlite`, `macros`, `migrate`） |
-| 凭据 | `keyring`（最新稳定版） |
-| 单实例 | `tauri-plugin-single-instance` |
-| 日志 | `tracing` + `tracing-subscriber` |
-| 错误 | `thiserror` + `anyhow`（仅命令行入口处兜底） |
+| `react` + `react-dom` | UI |
+| `typescript` | 类型 |
+| `vite` + `@vitejs/plugin-react` | 构建 |
+| `tailwindcss` + `@tailwindcss/vite` | 样式（v4，无需 PostCSS 配置） |
+| `@tauri-apps/api` | invoke / Channel / listen |
+| `@tauri-apps/plugin-single-instance`（如需） | 配套后端插件 |
+| `@types/react`, `@types/react-dom` | 类型 |
 
-> **注**：调研里出现的具体版本号（如 keyring 0.2+、Tauri 2.9.5）作为参考。脚手架阶段以 `cargo add` 拿到的最新稳定版为准，并将实际版本回填进 `Cargo.toml`，本节如有出入以代码为准。
+**明确剔除**：
+- ❌ React Router —— 5 个页面用 `useState<PageKey>` + switch 切换，零依赖
+- ❌ Redux / Zustand / Jotai —— `useState` + Context 够用
+- ❌ axios / SWR / TanStack Query —— 用 `invoke`，自写 `useInvoke<T>` hook
+- ❌ dayjs / date-fns —— `Intl.DateTimeFormat` 处理
+- ❌ lucide-react / 图标库 —— 内嵌少数 inline SVG，5 个页面用不到几个图标
+- ❌ shadcn-ui / Radix —— Tailwind utility 直接写组件
+- ❌ clsx / classnames —— 模板字符串拼接足够
+
+### 12.4 依赖审查节奏
+
+- 每次新增一个依赖必须在本节登记，附"不可替代理由"。
+- 每个里程碑（M2/M3/M4）结束跑一次 `cargo tree --depth 2` 和 `pnpm list --depth=0` 复核。
+
+> **注**：调研里出现的具体版本号作为参考。脚手架阶段以 `cargo add` / `pnpm add` 拿到的最新稳定版为准，回填进 manifest。本节如与代码出入以代码为准。
 
 ## 13. 开发里程碑
 
