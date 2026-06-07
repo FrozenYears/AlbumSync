@@ -6,8 +6,14 @@
 use serde::Serialize;
 
 /// 同步任务通过 Channel 推送的事件（高频）
+//
+// 注意：serde 的 `rename_all = "camelCase"` 只会重命名 enum 的 variant 名
+// （如 Started -> "started"），而不会重命名 struct variant 内部字段
+// （如 `done_bytes` 默认仍为 snake_case）。
+// 前端 TS 类型用的是 camelCase，因此必须用 `rename_all_fields = "camelCase"`，
+// 否则前端读到的是 `undefined`，进度条会显示 `NaN KB`。
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum SyncEvent {
     /// 开始：远端清单已完成，准备开始下载
     Started {
