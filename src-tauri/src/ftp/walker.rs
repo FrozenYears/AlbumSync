@@ -109,10 +109,16 @@ pub async fn walk(
 
         let listing_arg = if dir.is_empty() { None } else { Some(dir.as_str()) };
         let listing: Vec<String> = ftp.mlsd(listing_arg).await?;
+        let entries_total = listing.len();
+
+        let mut dir_total = 0usize;
+        let mut file_total = 0usize;
+        let mut accepted = 0usize;
+        let mut skipped_ext = 0usize;
+        let mut skipped_filter = 0usize;
 
         for raw in listing {
             // Primitive FTPd 在 Modify 字段加毫秒小数（RFC 3659 允许，但 suppaftp 8 不接受）
-            // 例：Modify=20241225213441.564; → Modify=20241225213441;
             let cleaned = strip_modify_fraction(&raw);
             let file: ListFile = match ListParser::parse_mlsd(&cleaned) {
                 Ok(f) => f,
@@ -136,19 +142,43 @@ pub async fn walk(
                 .unwrap_or_else(|| abs_path.trim_start_matches('/').to_string());
 
             if file.is_directory() {
+                dir_total += 1;
                 if !excluded(&rel, cfg) {
                     stack.push((abs_path, depth + 1));
+                } else {
+                    tracing::debug!(rel = %rel, "dir excluded");
                 }
-            } else if file.is_file()
-                && is_media(&rel, &cfg.extensions)
-                && included(&rel, cfg)
-                && !excluded(&rel, cfg)
-            {
-                let size = file.size() as u64;
-                let mtime = systemtime_to_unix(file.modified());
-                out.push(FileEntry { rel_path: rel, size, mtime });
+            } else if file.is_file() {
+                file_total += 1;
+                let ext_ok = is_media(&rel, &cfg.extensions);
+                let inc_ok = included(&rel, cfg);
+                let exc_hit = excluded(&rel, cfg);
+                if !ext_ok {
+                    skipped_ext += 1;
+                    tracing::debug!(rel = %rel, "file skipped: not media ext");
+                } else if !inc_ok || exc_hit {
+                    skipped_filter += 1;
+                    tracing::debug!(rel = %rel, inc_ok, exc_hit, "file skipped: glob filter");
+                } else {
+                    accepted += 1;
+                    let size = file.size() as u64;
+                    let mtime = systemtime_to_unix(file.modified());
+                    out.push(FileEntry { rel_path: rel, size, mtime });
+                }
             }
         }
+
+        tracing::info!(
+            dir = %dir,
+            depth,
+            entries = entries_total,
+            dirs = dir_total,
+            files = file_total,
+            accepted,
+            skipped_ext,
+            skipped_filter,
+            "scanned directory"
+        );
     }
     Ok(out)
 }
