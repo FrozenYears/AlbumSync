@@ -17,6 +17,16 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "sync", "time", "net", "io-util"] }
+tokio-util = { version = "0.7.18", features = ["compat", "io"] }
+thiserror = "2.0.18"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate"] }
+suppaftp = { version = "8.0.3", default-features = false, features = ["tokio"] }
+tauri-plugin-single-instance = "2.4.2"
+glob = "0.3.3"
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
 
 # 后续里程碑按需在 commit 中加入：
 # suppaftp / sqlx / keyring / tokio / thiserror / tracing /

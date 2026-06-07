@@ -1,4 +1,14 @@
-// 应用入口：仅装配 Tauri Builder，业务逻辑写在后续模块中
+// AlbumSync 主入口装配
+
+pub mod config;
+pub mod db;
+pub mod error;
+pub mod events;
+pub mod ftp;
+
+pub mod sync {
+    pub mod diff;
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
