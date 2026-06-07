@@ -1,0 +1,22 @@
+# 项目级 Cargo 配置：仅对本项目生效，不修改用户全局 ~/.cargo/config.toml
+
+# ---- crates.io 镜像（中科大 sparse）----
+[source.crates-io]
+replace-with = "ustc"
+
+[source.ustc]
+registry = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"
+
+[net]
+retry = 3
+git-fetch-with-cli = true
+
+# 注：MSVC linker 由 rustc 内置的 vcvars 探测机制自动定位。
+# 在 git bash 中跑 cargo 时，PATH 上的 /usr/bin/link 是 MSYS2 coreutils 同名命令，
+# 会劫持 rustc 寻找 link.exe 的调用 → 链接失败。
+# 解决方案有二，开发者按自身偏好二选一：
+#   方案 A（推荐）：用 cmd.exe + vcvars64.bat 启动 cargo，避开 git bash PATH
+#     cmd.exe /c "\"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat\" && cargo build"
+#   方案 B：在 git bash 里临时前置 MSVC bin 到 PATH（仅当前 session 生效）
+#     export PATH="/c/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/<ver>/bin/Hostx64/x64:$PATH"
+# 详见 CONTRIBUTING.md "故障排除" 一节。
