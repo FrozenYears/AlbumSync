@@ -1,0 +1,5 @@
+# pnpm 11+ 项目配置（即使没有 workspace 也使用此文件）
+# 白名单允许执行 install / postinstall 脚本的依赖（其它一律阻止）
+allowBuilds:
+  esbuild: true
+  '@tauri-apps/cli': true
