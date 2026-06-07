@@ -27,21 +27,19 @@ pub struct DeviceConfig {
 }
 
 impl DeviceConfig {
-    pub fn load_active(pool: &SqlitePool) -> impl std::future::Future<Output = Result<Option<Self>>> + '_ {
-        async move {
-            let mut devices = queries::list_active_devices(pool).await?;
-            let Some(row) = devices.pop() else { return Ok(None) };
-            let password = credential::load_password(&row.username, &row.host, row.port as u16)?;
-            Ok(Some(Self {
-                id: row.id,
-                name: row.name,
-                host: row.host.clone(),
-                port: row.port as u16,
-                username: row.username.clone(),
-                password,
-                backup_root: PathBuf::from(row.backup_root),
-            }))
-        }
+    pub async fn load_active(pool: &SqlitePool) -> Result<Option<Self>> {
+        let mut devices = queries::list_active_devices(pool).await?;
+        let Some(row) = devices.pop() else { return Ok(None) };
+        let password = credential::load_password(&row.username, &row.host, row.port as u16)?;
+        Ok(Some(Self {
+            id: row.id,
+            name: row.name,
+            host: row.host,
+            port: row.port as u16,
+            username: row.username,
+            password,
+            backup_root: PathBuf::from(row.backup_root),
+        }))
     }
 }
 
