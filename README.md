@@ -139,11 +139,6 @@ scripts\with-msvc.bat pnpm tauri dev
 
 bug 反馈请通过 [Issue](https://github.com/FrozenYears/AlbumSync/issues/new/choose)；安装求助请走 [Discussions](https://github.com/FrozenYears/AlbumSync/discussions)。
 
-## 致谢
-
-- [Primitive FTPd](https://github.com/wolpi/prim-ftpd) — 手机端 FTP 服务器
-- [Tauri](https://v2.tauri.app/) — 桌面框架
-- [suppaftp](https://github.com/veeso/suppaftp) — Rust FTP 客户端
 
 ## 许可
 
