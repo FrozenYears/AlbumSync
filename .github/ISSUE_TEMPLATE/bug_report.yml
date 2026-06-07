@@ -1,0 +1,65 @@
+name: 🐛 Bug 反馈
+description: 报告一个 bug 或异常行为
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量提供以下信息，**带后端日志的报告处理速度会快很多**。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么 / What happened
+      description: 描述你看到的现象，以及预期的现象。
+      placeholder: 例：点击「立即同步」后进度条显示 NaN KB，3 分钟无变化
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1. 启动 AlbumSync
+        2. 在设备页填入 host=...，port=...
+        3. 点击 ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AlbumSync 版本
+      placeholder: 例：v0.1.0 或 git e682209
+    validations:
+      required: true
+
+  - type: input
+    id: phone-ftp
+    attributes:
+      label: 手机端 FTP 服务器软件 + 端口
+      placeholder: 例：Primitive FTPd 1024 / MiXplorer SFTP 2222
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 后端日志（最后 50-100 行）
+      description: |
+        从你启动 AlbumSync 的终端复制。**含 `panic` 或 `ERROR` 的行务必完整保留**。
+        敏感字段（手机 IP、用户名）可以脱敏。
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: prechecks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索过现有 issue，确认没有重复
+          required: true
+        - label: 我已尝试关闭 Windows Explorer 里所有打开 FTP 地址的窗口（per-IP slot 占用是已知问题）
+          required: false

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "AlbumSync — back up Android photo album to Windows over LAN FTP"
 authors = ["AlbumSync"]
 edition = "2021"
-license = "MIT"
+license = "Apache-2.0"
 
 [lib]
 name = "albumsync_lib"

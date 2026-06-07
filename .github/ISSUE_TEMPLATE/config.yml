@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 使用问题 / 安装求助
+    url: https://github.com/FrozenYears/AlbumSync/discussions
+    about: 不是 bug、不是新功能请求 — 例如「我配不通 Primitive FTPd」这类，请走 Discussions。

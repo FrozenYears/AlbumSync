@@ -1,0 +1,73 @@
+# PR / push 时跑的检查：前端类型 + 构建；Rust fmt / clippy / test
+#
+# 设计原则：
+#   - 只跑 Windows runner（项目本身就是 Windows 应用，linux 跑过也没意义）
+#   - 不跑 cargo build（编译整个 webview/tauri 太慢）；用 cargo check + clippy 覆盖
+#   - 用 Swatinem/rust-cache 缓存 target/，第二次以后 < 2 分钟
+#
+# 不打包安装包：那是 release.yml 的事
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build frontend (Vite)
+        run: pnpm build
+
+  rust:
+    name: Rust (fmt + clippy + test)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: cargo fmt --check
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test --all-targets

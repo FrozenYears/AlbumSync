@@ -1,0 +1,33 @@
+name: ✨ 功能请求
+description: 提出新功能或改进建议
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题 / What problem are you trying to solve
+      description: 先描述你遇到的实际场景，再描述你想要的功能。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: 你期望的解决方案
+      placeholder: 例：设备配置里加「远端根目录」字段，让 include glob 写法不依赖 server chroot
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案 / 你尝试过的 workaround
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 这与项目范围一致吗
+      description: AlbumSync 是「LAN 内 Android → Windows 单向相册备份」专用工具，**不打算**变成通用 FTP 客户端或多平台多账号同步软件。
+      options:
+        - label: 我确认这个功能在 AlbumSync 当前定位内
+          required: true
