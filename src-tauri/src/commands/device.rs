@@ -14,10 +14,7 @@ pub async fn get_active_device(db: State<'_, Database>) -> Result<Option<DeviceD
 }
 
 #[tauri::command]
-pub async fn save_device(
-    db: State<'_, Database>,
-    form: DeviceForm,
-) -> Result<DeviceDto> {
+pub async fn save_device(db: State<'_, Database>, form: DeviceForm) -> Result<DeviceDto> {
     if form.name.is_empty() || form.host.is_empty() || form.username.is_empty() {
         return Err(AlbumError::Config("名称/主机/用户名不能为空".into()));
     }
@@ -38,16 +35,21 @@ pub async fn delete_device(db: State<'_, Database>, id: i64) -> Result<()> {
 #[tauri::command]
 pub async fn test_connection(form: DeviceForm) -> Result<ConnectionResult> {
     match ftp::test_connection(&form.host, form.port, &form.username, &form.password).await {
-        Ok(banner) => Ok(ConnectionResult { ok: true, server_banner: Some(banner), error: None }),
-        Err(e) => Ok(ConnectionResult { ok: false, server_banner: None, error: Some(e.to_string()) }),
+        Ok(banner) => Ok(ConnectionResult {
+            ok: true,
+            server_banner: Some(banner),
+            error: None,
+        }),
+        Err(e) => Ok(ConnectionResult {
+            ok: false,
+            server_banner: None,
+            error: Some(e.to_string()),
+        }),
     }
 }
 
 #[tauri::command]
-pub async fn device_status(
-    db: State<'_, Database>,
-    id: i64,
-) -> Result<DeviceStatus> {
+pub async fn device_status(db: State<'_, Database>, id: i64) -> Result<DeviceStatus> {
     use std::time::{Duration, Instant};
     let row = crate::db::queries::get_device(db.pool(), id)
         .await?

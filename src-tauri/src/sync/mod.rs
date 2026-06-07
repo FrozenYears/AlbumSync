@@ -149,7 +149,9 @@ async fn run_inner(
 
     for item in &diff {
         if let DiffItem::DeleteLocal { rel_path, .. } = item {
-            if cancel.is_cancelled() { break; }
+            if cancel.is_cancelled() {
+                break;
+            }
             let now = unix_now();
             match trash::move_to_trash(
                 pool,
@@ -169,7 +171,8 @@ async fn run_inner(
                 Err(e) => {
                     tracing::warn!(rel = rel_path, err = %e, "move_to_trash failed");
                     emitter.failed(rel_path, &e.to_string());
-                    let _ = queries::record_sync_failure(pool, run_id, rel_path, &e.to_string()).await;
+                    let _ =
+                        queries::record_sync_failure(pool, run_id, rel_path, &e.to_string()).await;
                     failed += 1;
                 }
             }
@@ -208,9 +211,18 @@ async fn run_inner(
                 Ok(p) => p,
                 Err(_) => return,
             };
-            if cancel.is_cancelled() { return; }
+            if cancel.is_cancelled() {
+                return;
+            }
             let res = download_one_file(
-                &host, port, &user, &pass, &backup_root, &entry, &tx, &cancel,
+                &host,
+                port,
+                &user,
+                &pass,
+                &backup_root,
+                &entry,
+                &tx,
+                &cancel,
             )
             .await;
             let msg = match res {
@@ -234,11 +246,19 @@ async fn run_inner(
 
     while let Some(msg) = rx.recv().await {
         match msg {
-            DownloadMsg::Progress { current_file, bytes } => {
+            DownloadMsg::Progress {
+                current_file,
+                bytes,
+            } => {
                 bytes_downloaded += bytes;
                 emitter.add_bytes(bytes, &current_file);
             }
-            DownloadMsg::Done { rel_path, size, mtime, is_update } => {
+            DownloadMsg::Done {
+                rel_path,
+                size,
+                mtime,
+                is_update,
+            } => {
                 let now = unix_now();
                 let _ = queries::upsert_file_index(
                     pool,
@@ -265,7 +285,9 @@ async fn run_inner(
             }
         }
     }
-    for t in tasks { let _ = t.await; }
+    for t in tasks {
+        let _ = t.await;
+    }
     emitter.flush_now();
 
     let now = unix_now();
@@ -277,7 +299,16 @@ async fn run_inner(
         "partial"
     };
     queries::finish_sync_run(
-        pool, run_id, status, added, updated, deleted, failed, bytes_downloaded, None, now,
+        pool,
+        run_id,
+        status,
+        added,
+        updated,
+        deleted,
+        failed,
+        bytes_downloaded,
+        None,
+        now,
     )
     .await?;
 
@@ -297,14 +328,20 @@ async fn finish_aborted(pool: &SqlitePool, run_id: i64, emitter: &ProgressEmitte
 }
 
 enum DownloadMsg {
-    Progress { current_file: String, bytes: u64 },
+    Progress {
+        current_file: String,
+        bytes: u64,
+    },
     Done {
         rel_path: String,
         size: u64,
         mtime: i64,
         is_update: bool,
     },
-    Failed { rel_path: String, reason: String },
+    Failed {
+        rel_path: String,
+        reason: String,
+    },
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -318,7 +355,9 @@ async fn download_one_file(
     tx: &tokio::sync::mpsc::Sender<DownloadMsg>,
     cancel: &CancellationToken,
 ) -> Result<u64> {
-    if cancel.is_cancelled() { return Err(AlbumError::Cancelled); }
+    if cancel.is_cancelled() {
+        return Err(AlbumError::Cancelled);
+    }
 
     // 连接也用 race：取消优先
     let connect_fut = connect_login(host, port, user, pass, Duration::from_secs(15));
@@ -329,26 +368,27 @@ async fn download_one_file(
         r = &mut connect_fut => r?,
     };
 
-    let remote_path = format!("{REMOTE_BASE}{}{}", trailing_slash(REMOTE_BASE), entry.rel_path);
+    let remote_path = format!(
+        "{REMOTE_BASE}{}{}",
+        trailing_slash(REMOTE_BASE),
+        entry.rel_path
+    );
     let local_path = backup_root.join(&entry.rel_path);
 
     let outcome = {
         let rel = entry.rel_path.clone();
         let tx2 = tx.clone();
         let cancel2 = cancel.clone();
-        let download_fut = downloader::download_one(
-            &mut ftp,
-            &remote_path,
-            &local_path,
-            entry.size,
-            move |n| {
-                if cancel2.is_cancelled() { return; }
+        let download_fut =
+            downloader::download_one(&mut ftp, &remote_path, &local_path, entry.size, move |n| {
+                if cancel2.is_cancelled() {
+                    return;
+                }
                 let _ = tx2.try_send(DownloadMsg::Progress {
                     current_file: rel.clone(),
                     bytes: n,
                 });
-            },
-        );
+            });
         tokio::pin!(download_fut);
         tokio::select! {
             biased;
@@ -361,7 +401,11 @@ async fn download_one_file(
 }
 
 fn trailing_slash(s: &str) -> &str {
-    if s.ends_with('/') { "" } else { "/" }
+    if s.ends_with('/') {
+        ""
+    } else {
+        "/"
+    }
 }
 
 fn unix_now() -> i64 {

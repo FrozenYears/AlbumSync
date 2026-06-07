@@ -23,8 +23,8 @@ use sync::SyncState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let log_filter = std::env::var("ALBUMSYNC_LOG")
-        .unwrap_or_else(|_| "info,albumsync=debug".to_string());
+    let log_filter =
+        std::env::var("ALBUMSYNC_LOG").unwrap_or_else(|_| "info,albumsync=debug".to_string());
     let _ = tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::new(log_filter))
         .with_target(true)
@@ -119,9 +119,8 @@ async fn init_async(app: tauri::AppHandle) -> error::Result<()> {
 
 /// 阻塞读出活跃设备的 backup_root，用于 GC 后台任务里同步调用
 fn backup_root_blocking(pool: &sqlx::SqlitePool) -> Option<std::path::PathBuf> {
-    let res = tauri::async_runtime::block_on(async {
-        db::queries::list_active_devices(pool).await
-    });
+    let res =
+        tauri::async_runtime::block_on(async { db::queries::list_active_devices(pool).await });
     match res {
         Ok(mut v) => v.pop().map(|r| std::path::PathBuf::from(r.backup_root)),
         Err(_) => None,
@@ -132,7 +131,9 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let show = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
     let sync = MenuItemBuilder::with_id("sync", "立即同步").build(app)?;
     let quit = MenuItemBuilder::with_id("quit", "退出 AlbumSync").build(app)?;
-    let menu = MenuBuilder::new(app).items(&[&show, &sync, &quit]).build()?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&show, &sync, &quit])
+        .build()?;
 
     TrayIconBuilder::new()
         .tooltip("AlbumSync")

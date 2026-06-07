@@ -13,7 +13,11 @@ use serde::Serialize;
 // 前端 TS 类型用的是 camelCase，因此必须用 `rename_all_fields = "camelCase"`，
 // 否则前端读到的是 `undefined`，进度条会显示 `NaN KB`。
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum SyncEvent {
     /// 开始：远端清单已完成，准备开始下载
     Started {
@@ -35,10 +39,7 @@ pub enum SyncEvent {
         action: FileAction,
     },
     /// 单个文件失败（不中断整体）
-    Failed {
-        rel_path: String,
-        reason: String,
-    },
+    Failed { rel_path: String, reason: String },
     /// 全部完成
     Finished {
         run_id: i64,

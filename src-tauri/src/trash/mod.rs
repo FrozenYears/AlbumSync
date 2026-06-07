@@ -35,7 +35,9 @@ pub async fn move_to_trash(
 
     // .trash/<timestamp>/<original_rel>
     let ts_dir = format_unix(now);
-    let trash_rel_pb: PathBuf = PathBuf::from(TRASH_DIRNAME).join(&ts_dir).join(original_rel);
+    let trash_rel_pb: PathBuf = PathBuf::from(TRASH_DIRNAME)
+        .join(&ts_dir)
+        .join(original_rel);
     let trash_abs = backup_root.join(&trash_rel_pb);
 
     if let Some(parent) = trash_abs.parent() {
@@ -45,7 +47,16 @@ pub async fn move_to_trash(
 
     let expire_at = now + SECS_PER_DAY * retention_days as i64;
     let trash_rel = trash_rel_pb.to_string_lossy().replace('\\', "/");
-    let id = queries::insert_trash(pool, device_id, original_rel, &trash_rel, size, now, expire_at).await?;
+    let id = queries::insert_trash(
+        pool,
+        device_id,
+        original_rel,
+        &trash_rel,
+        size,
+        now,
+        expire_at,
+    )
+    .await?;
 
     Ok(TrashRow {
         id,
@@ -105,21 +116,32 @@ pub async fn purge_one(backup_root: &Path, trash_rel: &str) -> Result<()> {
 
 fn format_unix(now: i64) -> String {
     // 不依赖 chrono：手动生成 YYYYMMDD-HHMMSS（UTC）
-    fn is_leap(y: i64) -> bool { (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 }
+    fn is_leap(y: i64) -> bool {
+        (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
+    }
     let secs_in_day = now.rem_euclid(SECS_PER_DAY);
     let mut days = now.div_euclid(SECS_PER_DAY);
     let mut y: i64 = 1970;
     loop {
         let yd = if is_leap(y) { 366 } else { 365 };
-        if days < yd { break; }
+        if days < yd {
+            break;
+        }
         days -= yd;
         y += 1;
     }
     let dom = [31i64, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     let mut m: i64 = 1;
     for mm in 1..=12 {
-        let dim = if mm == 2 && is_leap(y) { 29 } else { dom[(mm - 1) as usize] };
-        if days < dim { m = mm; break; }
+        let dim = if mm == 2 && is_leap(y) {
+            29
+        } else {
+            dom[(mm - 1) as usize]
+        };
+        if days < dim {
+            m = mm;
+            break;
+        }
         days -= dim;
     }
     let d = days + 1;

@@ -59,7 +59,11 @@ mod tests {
     use super::*;
 
     fn fe(p: &str, s: u64, m: i64) -> FileEntry {
-        FileEntry { rel_path: p.into(), size: s, mtime: m }
+        FileEntry {
+            rel_path: p.into(),
+            size: s,
+            mtime: m,
+        }
     }
 
     #[test]
@@ -104,15 +108,26 @@ mod tests {
 
     #[test]
     fn mixed_scenarios() {
-        let l = vec![fe("keep", 10, 1000), fe("update", 20, 2000), fe("gone", 30, 3000)];
-        let r = vec![fe("keep", 10, 1000), fe("update", 25, 2000), fe("new", 40, 4000)];
+        let l = vec![
+            fe("keep", 10, 1000),
+            fe("update", 20, 2000),
+            fe("gone", 30, 3000),
+        ];
+        let r = vec![
+            fe("keep", 10, 1000),
+            fe("update", 25, 2000),
+            fe("new", 40, 4000),
+        ];
         let d = compute_diff(&l, &r);
         assert_eq!(d.len(), 3);
-        let kinds: Vec<&'static str> = d.iter().map(|x| match x {
-            DiffItem::Add(_) => "add",
-            DiffItem::Update(_) => "update",
-            DiffItem::DeleteLocal { .. } => "del",
-        }).collect();
+        let kinds: Vec<&'static str> = d
+            .iter()
+            .map(|x| match x {
+                DiffItem::Add(_) => "add",
+                DiffItem::Update(_) => "update",
+                DiffItem::DeleteLocal { .. } => "del",
+            })
+            .collect();
         assert!(kinds.contains(&"add"));
         assert!(kinds.contains(&"update"));
         assert!(kinds.contains(&"del"));

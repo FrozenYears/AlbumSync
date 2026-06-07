@@ -7,8 +7,8 @@ use suppaftp::types::FileType;
 
 use crate::error::{AlbumError, Result};
 
-pub mod walker;
 pub mod downloader;
+pub mod walker;
 
 /// 创建一条已登录的 FTP 控制连接（二进制模式）
 pub async fn connect_login(

@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 
 use crate::db::queries;
 use crate::error::Result;
-use crate::events::{EVT_TRASH_GC_FINISHED, TrashGcFinishedPayload};
+use crate::events::{TrashGcFinishedPayload, EVT_TRASH_GC_FINISHED};
 
 /// 跑一次 GC：删 expire_at <= now 的所有 trash 项（文件 + 数据库行）
 pub async fn run_once(
@@ -32,7 +32,10 @@ pub async fn run_once(
         let ids: Vec<i64> = expired.iter().map(|r| r.id).collect();
         queries::delete_trash_rows(pool, &ids).await?;
     }
-    Ok(TrashGcFinishedPayload { purged, freed_bytes: freed })
+    Ok(TrashGcFinishedPayload {
+        purged,
+        freed_bytes: freed,
+    })
 }
 
 /// 启动后台 GC 循环：启动时立即跑一次，之后每 6 小时一次。

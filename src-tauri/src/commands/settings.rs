@@ -12,9 +12,6 @@ pub async fn get_settings(db: State<'_, Database>) -> Result<SettingsDto> {
 }
 
 #[tauri::command]
-pub async fn update_settings(
-    db: State<'_, Database>,
-    form: SettingsForm,
-) -> Result<()> {
+pub async fn update_settings(db: State<'_, Database>, form: SettingsForm) -> Result<()> {
     config::update_settings(db.pool(), &form).await
 }

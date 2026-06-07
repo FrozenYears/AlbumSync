@@ -17,10 +17,7 @@ pub async fn list_trash(
 }
 
 #[tauri::command]
-pub async fn restore_trash(
-    db: State<'_, Database>,
-    ids: Vec<i64>,
-) -> Result<()> {
+pub async fn restore_trash(db: State<'_, Database>, ids: Vec<i64>) -> Result<()> {
     let rows = queries::get_trash_items(db.pool(), &ids).await?;
     let now = unix_now();
     for row in rows {
@@ -34,10 +31,7 @@ pub async fn restore_trash(
 }
 
 #[tauri::command]
-pub async fn purge_trash(
-    db: State<'_, Database>,
-    ids: Vec<i64>,
-) -> Result<()> {
+pub async fn purge_trash(db: State<'_, Database>, ids: Vec<i64>) -> Result<()> {
     let rows = queries::get_trash_items(db.pool(), &ids).await?;
     for row in &rows {
         let device_row = queries::get_device(db.pool(), row.device_id)

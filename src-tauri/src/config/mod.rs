@@ -29,7 +29,9 @@ pub struct DeviceConfig {
 impl DeviceConfig {
     pub async fn load_active(pool: &SqlitePool) -> Result<Option<Self>> {
         let mut devices = queries::list_active_devices(pool).await?;
-        let Some(row) = devices.pop() else { return Ok(None) };
+        let Some(row) = devices.pop() else {
+            return Ok(None);
+        };
         let password = credential::load_password(&row.username, &row.host, row.port as u16)?;
         Ok(Some(Self {
             id: row.id,
@@ -50,11 +52,7 @@ pub async fn get_active_device(pool: &SqlitePool) -> Result<Option<DeviceDto>> {
 }
 
 /// 创建/更新设备（v0.1 设计：只支持 1 台，旧的会先 deactivate）
-pub async fn save_device(
-    pool: &SqlitePool,
-    form: &DeviceForm,
-    now: i64,
-) -> Result<DeviceDto> {
+pub async fn save_device(pool: &SqlitePool, form: &DeviceForm, now: i64) -> Result<DeviceDto> {
     let mut tx = pool.begin().await?;
 
     // 标记旧的为 inactive
@@ -124,7 +122,12 @@ pub async fn get_settings(pool: &SqlitePool) -> Result<SettingsDto> {
 pub async fn update_settings(pool: &SqlitePool, form: &SettingsForm) -> Result<()> {
     let mut tx = pool.begin().await?;
     write_setting(&mut tx, K_RETENTION, &form.retention_days.to_string()).await?;
-    write_setting(&mut tx, K_AUTOSTART, if form.auto_start { "true" } else { "false" }).await?;
+    write_setting(
+        &mut tx,
+        K_AUTOSTART,
+        if form.auto_start { "true" } else { "false" },
+    )
+    .await?;
     write_setting(&mut tx, K_CONCURRENCY, &form.concurrency.to_string()).await?;
     let include_json = serde_json::to_string(&form.include_globs)
         .map_err(|e| AlbumError::Config(e.to_string()))?;
@@ -141,7 +144,9 @@ async fn parse_setting<T: std::str::FromStr>(
     key: &str,
     default: T,
 ) -> Result<T> {
-    let Some(s) = queries::get_setting(pool, key).await? else { return Ok(default) };
+    let Some(s) = queries::get_setting(pool, key).await? else {
+        return Ok(default);
+    };
     Ok(s.parse().unwrap_or(default))
 }
 
@@ -150,7 +155,9 @@ async fn parse_setting_json<T: serde::de::DeserializeOwned>(
     key: &str,
     default: T,
 ) -> Result<T> {
-    let Some(s) = queries::get_setting(pool, key).await? else { return Ok(default) };
+    let Some(s) = queries::get_setting(pool, key).await? else {
+        return Ok(default);
+    };
     serde_json::from_str(&s).map_err(|e| AlbumError::Config(e.to_string()))
 }
 

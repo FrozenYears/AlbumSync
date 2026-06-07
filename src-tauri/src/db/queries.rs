@@ -111,11 +111,7 @@ pub async fn upsert_file_index(
     Ok(())
 }
 
-pub async fn delete_file_index(
-    pool: &SqlitePool,
-    device_id: i64,
-    rel_path: &str,
-) -> Result<()> {
+pub async fn delete_file_index(pool: &SqlitePool, device_id: i64, rel_path: &str) -> Result<()> {
     sqlx::query("DELETE FROM file_index WHERE device_id = ? AND rel_path = ?")
         .bind(device_id)
         .bind(rel_path)
@@ -127,13 +123,12 @@ pub async fn delete_file_index(
 // ============== sync_runs ==============
 
 pub async fn start_sync_run(pool: &SqlitePool, device_id: i64, now: i64) -> Result<i64> {
-    let res = sqlx::query(
-        "INSERT INTO sync_runs(device_id, started_at, status) VALUES(?, ?, 'running')",
-    )
-    .bind(device_id)
-    .bind(now)
-    .execute(pool)
-    .await?;
+    let res =
+        sqlx::query("INSERT INTO sync_runs(device_id, started_at, status) VALUES(?, ?, 'running')")
+            .bind(device_id)
+            .bind(now)
+            .execute(pool)
+            .await?;
     Ok(res.last_insert_rowid())
 }
 

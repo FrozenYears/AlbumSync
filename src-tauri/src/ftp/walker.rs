@@ -26,8 +26,7 @@ impl WalkConfig {
         let parse = |v: &[String]| -> Result<Vec<Pattern>> {
             v.iter()
                 .map(|s| {
-                    Pattern::new(s)
-                        .map_err(|e| AlbumError::Config(format!("无效 glob `{s}`: {e}")))
+                    Pattern::new(s).map_err(|e| AlbumError::Config(format!("无效 glob `{s}`: {e}")))
                 })
                 .collect()
         };
@@ -42,9 +41,9 @@ impl WalkConfig {
 
 fn media_extensions() -> HashSet<String> {
     [
-        "jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "bmp", "tiff", "tif",
-        "raw", "dng", "arw", "cr2", "cr3", "nef", "orf", "rw2",
-        "mp4", "mov", "3gp", "mkv", "avi", "m4v", "webm", "mts", "m2ts",
+        "jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "bmp", "tiff", "tif", "raw", "dng",
+        "arw", "cr2", "cr3", "nef", "orf", "rw2", "mp4", "mov", "3gp", "mkv", "avi", "m4v", "webm",
+        "mts", "m2ts",
     ]
     .into_iter()
     .map(String::from)
@@ -80,12 +79,16 @@ fn systemtime_to_unix(t: SystemTime) -> i64 {
 /// 保留 `Modify=YYYYMMDDHHMMSS;`。其他字段不动。
 fn strip_modify_fraction(raw: &str) -> String {
     let lower = raw.to_ascii_lowercase();
-    let Some(p) = lower.find("modify=") else { return raw.to_string() };
+    let Some(p) = lower.find("modify=") else {
+        return raw.to_string();
+    };
     let value_start = p + 7;
     let rest = &raw[value_start..];
     let value_end = rest.find(';').map(|e| value_start + e).unwrap_or(raw.len());
     let value = &raw[value_start..value_end];
-    let Some(dot_off) = value.find('.') else { return raw.to_string() };
+    let Some(dot_off) = value.find('.') else {
+        return raw.to_string();
+    };
     let mut out = String::with_capacity(raw.len());
     out.push_str(&raw[..value_start + dot_off]);
     out.push_str(&raw[value_end..]);
@@ -105,7 +108,9 @@ pub async fn walk(
     let mut stack: Vec<(String, u32)> = vec![(base.clone(), 0)];
 
     while let Some((dir, depth)) = stack.pop() {
-        if depth > cfg.max_depth { continue; }
+        if depth > cfg.max_depth {
+            continue;
+        }
 
         // Primitive FTPd（以及不少其它 FTP 服务器）不支持 MLSD <abs-path>。
         // 这里改成先 CWD 再 MLSD(None)，对所有 RFC 3659 合规的服务器都通用。
@@ -134,7 +139,9 @@ pub async fn walk(
                 }
             };
             let name = file.name();
-            if name == "." || name == ".." { continue; }
+            if name == "." || name == ".." {
+                continue;
+            }
 
             let abs_path = if dir.is_empty() {
                 format!("/{name}")
@@ -169,7 +176,11 @@ pub async fn walk(
                     accepted += 1;
                     let size = file.size() as u64;
                     let mtime = systemtime_to_unix(file.modified());
-                    out.push(FileEntry { rel_path: rel, size, mtime });
+                    out.push(FileEntry {
+                        rel_path: rel,
+                        size,
+                        mtime,
+                    });
                 }
             }
         }
@@ -221,7 +232,10 @@ mod tests {
     fn strip_fraction_modify_at_end() {
         let inp = "Type=file;Size=10;Modify=20240101000000.5 a.jpg";
         // 没有分号 → 把 value_end 视为 raw.len()，截到 .
-        assert_eq!(strip_modify_fraction(inp), "Type=file;Size=10;Modify=20240101000000");
+        assert_eq!(
+            strip_modify_fraction(inp),
+            "Type=file;Size=10;Modify=20240101000000"
+        );
     }
 
     #[test]

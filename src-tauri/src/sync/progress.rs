@@ -37,13 +37,7 @@ impl ProgressEmitter {
         }
     }
 
-    pub fn started(
-        &self,
-        run_id: i64,
-        total_files: u64,
-        total_bytes: u64,
-        deletes: u32,
-    ) {
+    pub fn started(&self, run_id: i64, total_files: u64, total_bytes: u64, deletes: u32) {
         let _ = self.channel.send(SyncEvent::Started {
             run_id,
             total_files,
@@ -79,14 +73,7 @@ impl ProgressEmitter {
         });
     }
 
-    pub fn finished(
-        &self,
-        run_id: i64,
-        added: u32,
-        updated: u32,
-        deleted: u32,
-        failed: u32,
-    ) {
+    pub fn finished(&self, run_id: i64, added: u32, updated: u32, deleted: u32, failed: u32) {
         let _ = self.channel.send(SyncEvent::Finished {
             run_id,
             added,

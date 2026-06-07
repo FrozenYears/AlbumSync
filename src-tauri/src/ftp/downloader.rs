@@ -46,7 +46,10 @@ where
                 fs::remove_file(dst).await?;
             }
             fs::rename(&part_path, dst).await?;
-            return Ok(DownloadOutcome { bytes_downloaded: 0, resumed_from: m.len() });
+            return Ok(DownloadOutcome {
+                bytes_downloaded: 0,
+                resumed_from: m.len(),
+            });
         }
         Ok(m) if expected_size > 0 && m.len() < expected_size => m.len(),
         Ok(_) => {
@@ -72,7 +75,9 @@ where
     let mut total: u64 = 0;
     loop {
         let n = stream.read(&mut buf).await?;
-        if n == 0 { break; }
+        if n == 0 {
+            break;
+        }
         file.write_all(&buf[..n]).await?;
         total += n as u64;
         on_progress(n as u64);
@@ -94,5 +99,8 @@ where
     }
     fs::rename(&part_path, dst).await?;
 
-    Ok(DownloadOutcome { bytes_downloaded: total, resumed_from: resume_from })
+    Ok(DownloadOutcome {
+        bytes_downloaded: total,
+        resumed_from: resume_from,
+    })
 }

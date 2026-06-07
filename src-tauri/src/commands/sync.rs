@@ -22,14 +22,19 @@ pub async fn sync_start(
     {
         let inflight = state.inflight.lock().await;
         if let Some(r) = inflight.as_ref() {
-            return Err(AlbumError::Other(format!("已有同步任务进行中（run #{}）", r.run_id)));
+            return Err(AlbumError::Other(format!(
+                "已有同步任务进行中（run #{}）",
+                r.run_id
+            )));
         }
     }
 
     let device = match crate::db::queries::get_device(db.pool(), device_id).await? {
         Some(row) => {
             let password = crate::config::credential::load_password(
-                &row.username, &row.host, row.port as u16,
+                &row.username,
+                &row.host,
+                row.port as u16,
             )?;
             DeviceConfig {
                 id: row.id,
