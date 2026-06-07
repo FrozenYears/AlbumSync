@@ -46,14 +46,9 @@ pub fn run() {
                 }
             });
 
-            // Ctrl+C / 终端关闭 → 主动 exit(0)，避免 STATUS_CONTROL_C_EXIT (0xC000013A)
-            let ctrl_c_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                if tokio::signal::ctrl_c().await.is_ok() {
-                    tracing::info!("Ctrl+C received, shutting down cleanly");
-                    ctrl_c_handle.exit(0);
-                }
-            });
+            // 注：原本这里有 tokio::signal::ctrl_c() handler，但它在 Windows
+            // 上跟 Tauri 内部的 console ctrl handler 可能冲突，疑似引发崩溃，
+            // 暂时禁用。Ctrl+C 仍能终止，只是 cargo 会报 0xC000013A（无害）。
 
             // 托盘
             if let Err(e) = setup_tray(app.handle()) {
