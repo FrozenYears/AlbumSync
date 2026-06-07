@@ -107,8 +107,14 @@ pub async fn walk(
     while let Some((dir, depth)) = stack.pop() {
         if depth > cfg.max_depth { continue; }
 
-        let listing_arg = if dir.is_empty() { None } else { Some(dir.as_str()) };
-        let listing: Vec<String> = ftp.mlsd(listing_arg).await?;
+        // Primitive FTPd（以及不少其它 FTP 服务器）不支持 MLSD <abs-path>。
+        // 这里改成先 CWD 再 MLSD(None)，对所有 RFC 3659 合规的服务器都通用。
+        let cwd_target = if dir.is_empty() { "/" } else { dir.as_str() };
+        if let Err(e) = ftp.cwd(cwd_target).await {
+            tracing::warn!(dir = %dir, err = %e, "CWD failed, skip directory");
+            continue;
+        }
+        let listing: Vec<String> = ftp.mlsd(None).await?;
         let entries_total = listing.len();
 
         let mut dir_total = 0usize;
